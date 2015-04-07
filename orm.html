@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>PHPixie ORM</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <style type="text/css">
+            @import url(http://fonts.googleapis.com/css?family=Source+Code+Pro|Open+Sans:400,700&subset=cyrillic,latin);
+            
+            body {
+                font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', Arial, sans-serif;
+            }
+            
+            .remark-code, .remark-inline-code {
+                font-family: 'Source Code Pro';
+                line-height: 1.3em;
+            }
+            
+            .remark-slide-content{
+                background: #2d3e50;
+                color:#fff;
+                font-size:2em;
+                line-height: 1.5em;
+            }
+            
+            a, a:visited {
+                color:#fff;
+            }
+            
+            h1{
+                position:relative;
+                margin: 0em -3em 0em -0.75em;
+                background: #1bbc9b;
+                padding:0.25em 0 0.25em 0.75em;
+                font-weight: bold;
+                
+            }
+            
+            .cover{
+                padding:0em;
+                text-align:center;
+            }
+            
+            .cover h1{
+                margin:0px;
+                padding:3em 0em 0.25em 0em;
+                text-align:center;
+                font-size:2.5em;
+            }
+            
+            .group h1{
+                background:none;
+                margin:2.75em 0em 0em 0em;
+                text-align:center;
+                padding:0em;
+                font-size: 3em;
+            }
+            
+            .float-right{
+                float:right;
+            }
+            .float-left{
+                float:left;
+            }
+        </style>
+    </head>
+    <body>
+        <textarea id="source">
+
+            class: cover
+
+            # PHPixie ORM 3
+            
+            [![Test Coverage](https://codeclimate.com/github/PHPixie/ORM/badges/coverage.svg)](https://codeclimate.com/github/PHPixie/ORM)
+            [![Code Climate](https://codeclimate.com/github/PHPixie/ORM/badges/gpa.svg)](https://codeclimate.com/github/PHPixie/ORM)
+            [![HHVM Status](https://img.shields.io/hhvm/phpixie/orm.svg?style=flat-square)](http://hhvm.h4cc.de/package/phpixie/orm)
+            [![Software License](https://img.shields.io/badge/license-BSD-brightgreen.svg?style=flat-square)](https://github.com/phpixie/orm/blob/master/LICENSE)
+            
+            The best of two worlds
+            
+            ---
+
+            # Great things about Doctrine
+            
+            * Models separated into Repositories, Queries and Entities
+            * Entities decoupled from persistance logic
+            * Easy to test
+            * Doesn't rely on magic methods
+            * Mongo support
+            
+            ---
+
+            # Great things about ActiveRecord
+            
+            * Gradual learning curve
+            * Easy to debug
+            * Works out of the box
+            * Convention over configuration approach
+            
+            ---
+            
+            # All that and then some
+            
+            * No code generation
+            * Same DSL for SQL databases and Mongo
+            * Relationships between Mongo and SQL
+            * Cross database relationships
+            * Easy hydration of external data
+            * Query optimization
+            * Heavy use of iterators to save memory
+            * Extra steps takes to avoid unnecessaary queries
+            * Relationship methods encapsulated into properties
+            * Not a single static method
+            
+            ---
+            
+            # Quickstart
+            
+            ```
+            $postsRepository = $orm->repository('post');
+            
+            $query = $postsRepository->query();
+            $posts = $query
+                ->where('status', 'active')
+                ->findAll();
+            
+            $post = $postsRepository->create();
+            $post->title = 'PHPixie ORM';
+            $post->save();
+            
+            $tagQuery = $orm->query('tag')
+                        ->where('name', 'PHP');
+            
+            $post->tags->add($tagQuery); //Teaser
+            ```
+            
+            ---
+            class: group
+            
+            # Extending
+            
+            ---
+            
+            # Based on the Decorator pattern
+            
+            Entities extend a proxying wrapper class instead of the actual
+            Entity class. This way added code is entirely decoupled from
+            the rest of the ORM.
+            
+            ```
+            //On the surface it looks like the usual ActiveRecord approach
+            //but the result is much easier to test
+            class User extends \PHPixie\ORM\Wrappers\Type\Database\Entity
+            {
+                public function getFullName()
+                {
+                    return $this->getField('firstName').' '.$this->getField('lastName');
+                }
+            }
+            ```
+            
+            ---
+            
+            # Easy to test
+            
+            ```
+            class UserTest extends \PHPUnit_Framework_TestCase
+            {
+                protected $entity;
+                protected $user;
+                
+                public function setUp()
+                {
+                    $this->entity = $this->getMock('\PHPixie\ORM\Models\Type\Database\Entity');
+                    $this->user   = new User($entity);
+                }
+                
+                public function testGetFullName()
+                {
+                    $data = array('firstName' => 'First', 'lastName' => 'Last');
+                    $this->entity
+                        ->method('getField')
+                        ->will($this->returnCallback(function($key) use($data) {
+                            return $data[$key];
+                        }));
+                    
+                    $this->assertSame('First Last', $this->user->getFullName());
+                }
+            }
+            
+            
+            ```
+            ---
+            
+            # Registering Wrappers
+            
+            ```
+            class Wrappers extends \PHPixie\ORM\Wrappers
+            {
+                public function userEntity($entity)
+                {
+                    return new User($entity);         
+                }
+                
+                public function databaseEntities()
+                {
+                    return array('user');
+                }
+                
+                //The same can be done for Queries and Repositories
+            }
+            ```
+            
+            ```
+            $wrappers = new Wrappers();
+            $orm = new ORM(..., $wrappers);
+            ```
+            
+            ---
+            
+            # Extending queries
+            
+            ```
+            class PostQuery extends \PHPixie\ORM\Wrappers\Type\Database\Query
+            {
+                public function popular()
+                {
+                    $this
+                        ->where('comments_count', '>=', 10)
+                        ->or('views', '>=', 'min_views')
+                }
+            }
+            ```
+            
+            ```
+            $postRepository->query()
+                ->popular()
+                ->findAll();
+            ```
+            ---
+            
+            class: group
+            
+            # Versatile DSL
+            
+            ---
+            
+            # Field Conditions
+            
+            ```
+            $query->where('status', 'active');
+            $query->andWhere('views', '>=*', 'views_threshold'); //Compare fields
+            $query->and('expires_date', '>', $database->sqlExpression("NOW()"));
+            
+            $query->whereNot('status', 'active');
+            $query->andWhereNot('status', 'active');
+            $query->not('status', 'active');
+            
+            $query->or(function($query){
+                $query->where('status','active');
+            });
+            
+            $query
+                ->startOrGroup()
+                    ->where('status','active')
+                ->endGroup();
+            
+            $query
+                ->startConditionGroup('or')
+                    ->where('status','active')
+                ->endGroup();
+            
+            //Methods with 'where' provide compatibility with the Database library
+            ```
+
+            ---
+            
+            # Querying Items
+            
+            ```
+            //Find by id
+            $postQuery->in(1);
+            
+            //Or multiple ids
+            $postQuery->in([1, 2]);
+            
+            //Use a fetched Entity
+            $postQuery->in($post);
+            
+            //Or a Query
+            $postQuery->in($query);
+            
+            //Or all of them
+            $postQuery->in([1, $post, $query]);
+            ```
+            
+            ```
+            //Passing IDs, Queries and Entities to specify items
+            //may be used across the entire ORM
+            $posts->tags->add([1, $tag, $tagQuery]);
+            ```
+            
+            ---
+            
+            # Querying Relationships
+            
+            ```
+            //Only the posts that have at least a single tag
+            $postQuery->relatedTo('tags');
+            
+            //Similar to in()
+            $postQuery->relatedTo('tags', $tagEntity);
+            $postQuery->relatedTo('tags', array(1, 2));
+            $postQuery->relatedTo('tags', array(1, $tagEntity, $tagQuery));
+            
+            //Use it as condition group
+            $postQuery->orRelatedTo('tags', function($query){
+                $query->where('name', 'PHP');
+            });
+            
+            $postQuery
+                ->startRelatedToGroup('tags')
+                    ->where('name', 'PHP')
+                ->endGroup();
+            
+            //Untagged posts
+            $postQuery->notRelatedTo('tags');
+            
+            //Shorthand
+            $postQuery->where('tags.name', 'PHP');
+            ```
+            ---
+            class: group
+            
+            # Relationships
+            
+            ---
+            
+            # Relationship properties
+            
+            ```
+            //In ohter ORMs relationships
+            //often clutter method space
+            $user->addRole();
+            $user->removeRole();
+            $user->removeAllRoles();
+            //...
+            ```
+            
+            ```
+            //PHPixie encapsulates relationships
+            //into separate properties
+            $user->roles->add();
+            $user->roles->remove();
+            $user->roles->removeAll();
+            ```
+            
+            This makes a huge difference if your model has many relationships
+            
+            ---
+            
+            # Usage with entities
+            
+            ```
+            //Invoke a property to get its value
+            $posts = $category->posts();
+            
+            //Similar to the in() usage
+            $category->posts->add($latestPost);
+            $category->posts->add($postQuery);
+            $category->posts->add(2);
+            $category->posts->add(array(2, $latestPost, $postQuery));
+            
+            //Updates propagate to opposite properties
+            $latestPost->category() === $category;
+            
+            //Query posts belonging to a category
+            $postQuery = $category->posts->query();
+            
+            ```
+            ---
+            
+            # Usage with queries
+            
+            ```
+            $postsQuery = $postRepository->query()
+                ->where('date_created', '>', '2015-03-15');
+            
+            $tagsQuery = $tagsRepository->query()
+                ->where('name', 'in', array('php', 'programming'));
+            
+            $postsQuery->tags->add($tagsQuery);
+            ```
+            
+            Most ORMs would execute 3 queries here, while PHPixie
+            would do it with a single one.
+            
+            ---
+            
+            # Try it out
+            
+            Runnable quickstart example with no setup required
+            
+            ```sh
+            git clone https://github.com/phpixie/orm
+            cd orm/examples
+            composer install
+            
+            php quickstart.php
+            php extending.php
+            ```
+            
+            
+            
+            ---
+            
+            # Follow PHPixie 3 updates
+            
+            .float-left[
+            http://phpixie.com
+            
+            @phpixie
+            ]            
+            .right[
+            http://dracony.org
+            
+            @dracony_gimp
+            ]
+            
+            # One more thing ...
+            
+            PHPixie templating library has just been released:
+            
+            https://github.com/phpixie/template/examples
+            
+        </textarea>
+        <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">
+        </script>
+        <script>
+            var slideshow = remark.create({
+                ratio: '16:9',
+                highlightLanguage: 'php',
+                highlightStyle: 'solarized_dark',
+            });
+        </script>
+    </body>
+</html>
