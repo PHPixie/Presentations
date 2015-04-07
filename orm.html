@@ -398,11 +398,16 @@
             
             # Layered architecture
             
-            * Relationship Properties ask Handlers to perform some action
-            * Handlers use Planners to build Plans
-            * Planners add required Steps to Plans
-            * A Plan gets executed in a transaction
-            
+            * A relationship Property asks its Handler to perform an action
+            * The Handler uses Planners to build a Plan
+            * The Planners add Steps to the Plan
+            * The Plan is executed within a transaction
+		
+		
+            * A Query asks the Mappers to plan it
+            * Mappers use Planners to build a Plan
+            * ...
+
             ---
             # Try it out
             
