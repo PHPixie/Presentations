@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>PHPixie 3</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <style type="text/css">
+            @import url(http://fonts.googleapis.com/css?family=Source+Code+Pro|Open+Sans:400,700&subset=cyrillic,latin);
+            
+            body {
+                font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', Arial, sans-serif;
+            }
+            
+            .remark-code, .remark-inline-code {
+                font-family: 'Source Code Pro';
+                line-height: 1.3em;
+            }
+            
+            .remark-slide-content{
+                background: #2d3e50;
+                color:#fff;
+                font-size:2em;
+                line-height: 1.5em;
+            }
+            
+            a, a:visited {
+                color:#fff;
+            }
+            
+            h1{
+                position:relative;
+                margin: 0em -3em 0em -0.75em;
+                background: #1bbc9b;
+                padding:0.25em 0 0.25em 0.75em;
+                font-weight: bold;
+                
+            }
+            
+            .cover{
+                padding:0em;
+                text-align:center;
+            }
+            
+            .cover h1{
+                margin:0px;
+                padding:3em 0em 0.25em 0em;
+                text-align:center;
+                font-size:2.5em;
+            }
+            
+            .group h1{
+                background:none;
+                margin:2.75em 0em 0em 0em;
+                text-align:center;
+                padding:0em;
+                font-size: 3em;
+            }
+            
+            .float-right{
+                float:right;
+            }
+            .float-left{
+                float:left;
+            }
+        </style>
+    </head>
+    <body>
+        <textarea id="source">
+
+            class: cover
+
+            # PHPixie 3
+                        
+            It's finally done !
+            
+            ---
+            
+            # Highlights
+            
+            * 100% unit test coverage
+            * No static logic
+            * One "new" statement per class
+            * No events, linear flow
+            * Still great performance
+            * A more serious website
+            
+            ---
+            
+            # An "abstract" framework
+            
+            * Create your own architecture by providing a single interface
+            * A bundle system and a minimal approach implemented
+            * Easy to decouple your code from the framework
+            
+            ---
+
+            # Bundle system
+            
+            * Bundles implemented via interfaces
+            * No hardcoded path
+            * No magic strings
+            * Published like any other composer package
+            
+            ---
+            
+            # Processors
+            
+            * Chain of responsibility instead of a kernel
+            * Can be used as middleware
+            * Allows for both Controller and Action approach
+            * Single entry point for all requests
+            
+            ---
+            
+            # Routing
+            
+            * Entirely decoupled from actual processing
+            * Host matching with parameters
+            * Dynamic route support
+            
+            ---
+            
+            # An application framework
+            
+            * Isolated user scope allows for persistent approach
+            * ReactPHP
+            * Doesn't rely on HTTP
+            
+            ---
+            
+            # Standards
+            
+            * PSR-4
+            * PSR-2
+            * PSR-7
+            
+            ---
+            
+            # Templating
+            
+            * Plain PHP with pluggable formats
+            * Layouts
+            * Blocks
+            * Advanced locators
+            
+            ---
+            
+            # Templating
+            
+            ```html
+            <!--layout.php-->
+            <html>
+                <title>
+                    <?php $this->block('title'); ?>
+                </title>
+                <body>
+                    <?php $this->childContent(); ?>
+                </body>
+            </html>
+            
+            <!--fairy.php-->
+            <?php $this->layout('layout'); ?>
+            <?php $this->startBlock('title'); ?>
+            Fairy page
+            <?php $this->endBlock(); ?>
+            <h2>Hello <?=$_($name) ?></h2>
+            ```
+            
+            ---
+            
+            # Follow PHPixie 3 updates
+            
+            .float-left[
+            http://phpixie.com
+            
+            @phpixie
+            ]            
+            .right[
+            http://dracony.org
+            
+            @dracony_gimp
+            ]
+            
+        </textarea>
+        <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">
+        </script>
+        <script>
+            var slideshow = remark.create({
+                ratio: '16:9',
+                highlightLanguage: 'php',
+                highlightStyle: 'solarized_dark',
+            });
+        </script>
+    </body>
+</html>
