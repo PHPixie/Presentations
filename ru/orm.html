@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>PHPixie ORM</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <style type="text/css">
+            @import url(http://fonts.googleapis.com/css?family=Source+Code+Pro|Open+Sans:400,700&subset=cyrillic,latin);
+
+            body {
+                font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', Arial, sans-serif;
+            }
+
+            .remark-code, .remark-inline-code {
+                font-family: 'Source Code Pro';
+                line-height: 1.3em;
+            }
+
+            .remark-slide-content{
+                background: #2d3e50;
+                color:#fff;
+                font-size:2em;
+                line-height: 1.5em;
+            }
+
+            a, a:visited {
+                color:#fff;
+            }
+
+            h1{
+                position:relative;
+                margin: 0em -3em 0em -0.75em;
+                background: #1bbc9b;
+                padding:0.25em 0 0.25em 0.75em;
+                font-weight: bold;
+
+            }
+
+            .cover{
+                padding:0em;
+                text-align:center;
+            }
+
+            .cover h1{
+                margin:0px;
+                padding:3em 0em 0.25em 0em;
+                text-align:center;
+                font-size:2.5em;
+            }
+
+            .group h1{
+                background:none;
+                margin:2.75em 0em 0em 0em;
+                text-align:center;
+                padding:0em;
+                font-size: 3em;
+            }
+
+            .float-right{
+                float:right;
+            }
+            .float-left{
+                float:left;
+            }
+        </style>
+    </head>
+    <body>
+        <textarea id="source">
+
+            class: cover
+
+            # PHPixie ORM 3
+
+            [![Test Coverage](https://codeclimate.com/github/PHPixie/ORM/badges/coverage.svg)](https://codeclimate.com/github/PHPixie/ORM)
+            [![Code Climate](https://codeclimate.com/github/PHPixie/ORM/badges/gpa.svg)](https://codeclimate.com/github/PHPixie/ORM)
+            [![HHVM Status](https://img.shields.io/hhvm/phpixie/orm.svg?style=flat-square)](http://hhvm.h4cc.de/package/phpixie/orm)
+            [![Software License](https://img.shields.io/badge/license-BSD-brightgreen.svg?style=flat-square)](https://github.com/phpixie/orm/blob/master/LICENSE)
+
+            Лучшее с двух миров
+
+            ---
+
+            # Преимущества Doctrine 2
+
+            * Модели расделені на Репозитории, Запросы и Сущности
+            * Сущности отделены от работы с БД
+            * Лекго тестируется
+            * Не полагается на магические методы
+            * Поддержка Mongo
+
+            ---
+
+            # Преимущества ActiveRecord
+
+            * Простота
+            * Легкая отладка
+            * Работа "из коробки"
+            * Подход "Convention over configuration"
+
+            ---
+
+            # Все это и даже больше
+
+            * Не надо генерировать код
+            * Одинаковый синтаксис при работе с SQL и Mongo
+            * Связи между разными базами данных
+            * Связи между данными в SQL и Mongo
+            * Простая гидраци внешных данных
+            * Оптимизация запросов
+            * Работа через итераторы для сохранения памяти
+            * Связи енкапсулированы в отдельные объекты
+            * Ни одного статического метода
+
+            ---
+
+            # Быстрый старт
+
+            ```
+            $postsRepository = $orm->repository('post');
+
+            $query = $postsRepository->query();
+            $posts = $query
+                ->where('status', 'active')
+                ->findAll();
+
+            $post = $postsRepository->create();
+            $post->title = 'PHPixie ORM';
+            $post->save();
+
+            $tagQuery = $orm->query('tag')
+                        ->where('name', 'PHP');
+
+            $post->tags->add($tagQuery); //Teaser
+            ```
+
+            ---
+            class: group
+
+            # Расшырение
+
+            ---
+
+            # Декораторы
+
+            Пользовательские Сущности расшыряют проксирующий враппер вместо
+            класса Entity напрямую. Таким образом добавленый код полностью независим
+            от самой ORM.
+
+            ```
+            //Свиду єто напоминает стандартній ActiveRecord подход
+            //но его намного лече тестировать.
+            class User extends \PHPixie\ORM\Wrappers\Type\Database\Entity
+            {
+                public function getFullName()
+                {
+                    return $this->getField('firstName').' '.$this->getField('lastName');
+                }
+            }
+            ```
+
+            ---
+
+            # Легкое тестирование
+
+            ```
+            class UserTest extends \PHPUnit_Framework_TestCase
+            {
+                protected $entity;
+                protected $user;
+
+                public function setUp()
+                {
+                    $this->entity = $this->getMock('\PHPixie\ORM\Models\Type\Database\Entity');
+                    $this->user   = new User($entity);
+                }
+
+                public function testGetFullName()
+                {
+                    $data = array('firstName' => 'First', 'lastName' => 'Last');
+                    $this->entity
+                        ->method('getField')
+                        ->will($this->returnCallback(function($key) use($data) {
+                            return $data[$key];
+                        }));
+
+                    $this->assertSame('First Last', $this->user->getFullName());
+                }
+            }
+
+
+            ```
+            ---
+
+            # Регистрация Врапперов
+
+            ```
+            class Wrappers extends \PHPixie\ORM\Wrappers
+            {
+                public function userEntity($entity)
+                {
+                    return new User($entity);
+                }
+
+                public function databaseEntities()
+                {
+                    return array('user');
+                }
+
+                //Аналогично можно расшырить Запросы и Репозитории
+            }
+            ```
+
+            ```
+            $wrappers = new Wrappers();
+            $orm = new ORM(..., $wrappers);
+            ```
+
+            ---
+
+            # Расшырение Запросов
+
+            ```
+            class PostQuery extends \PHPixie\ORM\Wrappers\Type\Database\Query
+            {
+                public function popular()
+                {
+                    $this
+                        ->where('comments_count', '>=', 10)
+                        ->or('views', '>=', 100)
+                }
+            }
+            ```
+
+            ```
+            $postRepository->query()
+                ->popular()
+                ->findAll();
+            ```
+            ---
+
+            class: group
+
+            # Гибкий синтаксис
+
+            ---
+
+            # Прстые условия
+
+            ```
+            $query->where('status', 'active');
+            $query->andWhere('views', '>=*', 'views_threshold'); //Compare fields
+            $query->and('expires_date', '>', $database->sqlExpression("NOW()"));
+
+            $query->whereNot('status', 'active');
+            $query->andWhereNot('status', 'active');
+            $query->not('status', 'active');
+
+            $query->or(function($query){
+                $query->where('status','active');
+            });
+
+            $query
+                ->startOrGroup()
+                    ->where('status','active')
+                ->endGroup();
+
+            $query
+                ->startConditionGroup('or')
+                    ->where('status','active')
+                ->endGroup();
+
+            //Методы с 'where' полностью компатибильны с компонентом Database
+            ```
+
+            ---
+
+            # Запросы
+
+            ```
+            //По id
+            $postQuery->in(1);
+
+            //По нескольким id
+            $postQuery->in([1, 2]);
+
+            //По сущности
+            $postQuery->in($post);
+
+            //По запросу
+            $postQuery->in($query);
+
+            //По всему сразу
+            $postQuery->in([1, $post, $query]);
+            ```
+
+            ```
+            //В каждом месте где можно использовать Сущность
+            //можно вставить id, Запрос или масив
+            $posts->tags->add([1, $tag, $tagQuery]);
+            ```
+
+            ---
+
+            # Запросы по связям
+
+            ```
+            //Записи у которых есть хотя бы один тег
+            $postQuery->relatedTo('tags');
+
+            //Аналогично к in()
+            $postQuery->relatedTo('tags', $tagEntity);
+            $postQuery->relatedTo('tags', array(1, 2));
+            $postQuery->relatedTo('tags', array(1, $tagEntity, $tagQuery));
+
+            //Группа условий
+            $postQuery->orRelatedTo('tags', function($query){
+                $query
+                    ->where('name', 'PHP')
+                    ->and('status', 'published');
+            });
+
+            $postQuery
+                ->startRelatedToGroup('tags')
+                    ->where('name', 'PHP')
+                ->endGroup();
+
+            //Записи без тегов
+            $postQuery->notRelatedTo('tags');
+
+            //Еще короче
+            $postQuery->where('tags.name', 'PHP');
+            ```
+            ---
+            class: group
+
+            # Связи
+
+            ---
+
+            # Объекты связей
+
+            ```
+            //В других ORM методы работы со связями
+            //сваливаются в одну кучу
+            $user->addRole();
+            $user->removeRole();
+            $user->removeAllRoles();
+            //...
+            ```
+
+            ```
+            //PHPixie енкапсулирует связи
+            //в отдельные объекты
+            $user->roles->add();
+            $user->roles->remove();
+            $user->roles->removeAll();
+            ```
+
+            Разница очень заметна в моделях с большым количеством связей
+
+            ---
+
+            # Использование в сущностях
+
+            ```
+            //Используем как метод для получения значения
+            $posts = $category->posts();
+
+            //Аналогично к in()
+            $category->posts->add($latestPost);
+            $category->posts->add($postQuery);
+            $category->posts->add(2);
+            $category->posts->add(array(2, $latestPost, $postQuery));
+
+            //Изменения сразу доступны с другой стороны связи
+            $latestPost->category() === $category;
+
+            //Записи принадлежащие к категории
+            $postQuery = $category->posts->query();
+
+            ```
+            ---
+
+            # Использование с Запросами
+
+            ```
+            $postsQuery = $postRepository->query()
+                ->where('dateCreated', '>', '2015-03-15');
+
+            $tagsQuery = $tagsRepository->query()
+                ->where('name', 'in', array('php', 'programming'));
+
+            $postsQuery->tags->add($tagsQuery);
+            ```
+
+            //Большынство ОРМ бы сделало здесь 3 запроса,
+            //PHPixie сделает только один
+
+            ---
+
+            # Четкая архитектура
+
+            * Объект связи просит своего Handler-а сделать действие
+            * Handler использует сервис Planners для построения запроса
+            * Planners добавляет Step-ы в Plan
+            * Plan выполняется внутри транзакции
+
+
+            * Query обращается к Mappers для создания плана запроса
+            * Mappers использует тот-же Planners и строит Plan
+            * ...
+
+            ---
+            # Демо
+
+            Простенький квикстарт можно найти здесь:
+
+            ```sh
+            git clone https://github.com/phpixie/orm
+            cd orm/examples
+            composer install
+
+            php quickstart.php
+            php extending.php
+            ```
+
+
+
+            ---
+
+            # Если интересно еще
+
+            .float-left[
+            http://phpixie.com
+
+            @phpixie
+            ]
+            .right[
+            http://dracony.org
+
+            @dracony_gimp
+            ]
+
+            # Слайды
+
+            https://github.com/phpixie/template/examples
+
+        </textarea>
+        <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">
+        </script>
+        <script>
+            var slideshow = remark.create({
+                ratio: '16:9',
+                highlightLanguage: 'php',
+                highlightStyle: 'solarized_dark',
+            });
+        </script>
+    </body>
+</html>
