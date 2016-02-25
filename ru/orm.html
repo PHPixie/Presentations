@@ -4,7 +4,7 @@
         <title>PHPixie ORM</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
         <style type="text/css">
-            @import url(http://fonts.googleapis.com/css?family=Source+Code+Pro|Open+Sans:400,700&subset=cyrillic,latin);
+            @import url(https://fonts.googleapis.com/css?family=Source+Code+Pro|Open+Sans:400,700&subset=cyrillic,latin);
 
             body {
                 font-family: 'Helvetica Neue', 'Helvetica', 'Open Sans', Arial, sans-serif;
@@ -323,11 +323,8 @@
                     ->where('name', 'PHP')
                 ->endGroup();
 
-            //Записи без тегов
-            $postQuery->notRelatedTo('tags');
-
-            //Еще короче
-            $postQuery->where('tags.name', 'PHP');
+            $postQuery->notRelatedTo('tags'); //Записи без тегов
+            $postQuery->where('tags.name', 'PHP'); //Короткий синтаксис
             ```
             ---
             class: group
